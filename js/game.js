@@ -53,6 +53,9 @@ Game.addNewPlayer = function(id,x,y){
 Game.movePlayer = function(id,x,y){
     var player = Game.playerMap[id];
     var distance = Phaser.Math.distance(player.x,player.y,x,y);
+
+    //Tween is to initaite a change over a period of time,
+    // like a character moving or a sprite fading
     var tween = game.add.tween(player);
     var duration = distance*10;
     tween.to({x:x,y:y}, duration);
