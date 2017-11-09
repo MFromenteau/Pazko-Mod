@@ -45,7 +45,11 @@ io.on('connection',function(socket){
         socket.emit('allplayers',getAllPlayers());
 
         // this is to notify all the player present on the server that this user as connected with this Object
-        // NOTE : We don't send directly the socket, that qould be irresponsible, but just the "object" player
+        // NOTE : We don't send directly the socket, that would be irresponsible, but just the "object" player
+        /* NOTE : We need this function because sending right away all the players would not work. That's
+        * because the current player isn't already part of all the payers (got through keys(io.object.connected))
+        * until the current connection hasn't finished setting up
+        */
         socket.broadcast.emit('newplayer',socket.player);
 
         // THE USER JUST CLICKED
@@ -67,11 +71,8 @@ io.on('connection',function(socket){
             io.emit('remove',socket.player.id);
         });
     });
-
-    socket.on('test',function(){
-        console.log('test received');
-    });
 });
+//here the current user is registered in the keys of the all the active sockets
 
 //pretty self explanatory
 function getAllPlayers(){
