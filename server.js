@@ -3,17 +3,17 @@ var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io').listen(server);
 
-app.use('/css',express.static(__dirname + '/css'));
-app.use('/js',express.static(__dirname + '/js'));
-app.use('/assets',express.static(__dirname + '/assets'));
+app.use('/css', express.static(__dirname + '/css'));
+app.use('/js', express.static(__dirname + '/js'));
+app.use('/assets', express.static(__dirname + '/assets'));
 
 //We normally never have to make some other path other than this root
-app.get('/',function(req,res){
-    res.sendFile(__dirname+'/index.html');
+app.get('/', function(req, res) {
+  res.sendFile(__dirname + '/index.html');
 });
 
-server.listen(process.env.PORT || 8080,function(){
-    console.log('Listening on '+server.address().port);
+server.listen(process.env.PORT || 8080, function() {
+  console.log('Listening on ' + server.address().port);
 });
 
 //*******GLOBAL VARS**************
@@ -22,70 +22,81 @@ server.lastPlayerID = 0;
 
 /* A NEW USER JUST CONNECTED HERE IS ALL THE EVENT HE CAN SEND US
 *  This function from 'io' create an socket object on the connection
-*  the socket represent the connection between sevrer and user
-*/
-io.on('connection',function(socket){
+*  the socket represent the connection between sevrer and user */
+io.on('connection', function(socket) {
 
-    // THis was arbitrary given by the dev, used client side too
-    socket.on('newplayer',function(){
+  // THis was arbitrary given by the dev, used client side too
+  socket.on('newplayer', function() {
 
-        /*We can give any attribute to the socket object and it will be specific to the sockets
-        * here we create an object player which's linked to the the sockets
-        * so we can say that socket.player is litterally the object materialisation of the User
-        */
+    /*We can give any attribute to the socket object and it will be specific to the sockets
+    * here we create an object player which's linked to the the sockets
+    * so we can say that socket.player is litterally the object materialisation of the User
+    */
 
-        console.log('create player id:'+server.lastPlayerID);
-        socket.player = {
-            id: server.lastPlayerID++,
-            x: randomInt(100,400),
-            y: randomInt(100,400)
-        };
+    console.log('create player id:' + server.lastPlayerID);
+    socket.player = {
+      id: server.lastPlayerID++,
+      orientation: 'down',
+      x: randomInt(100, 400),
+      y: randomInt(100, 400)
+    };
 
-        // This is to notify the User of all the player present on the server
-        socket.emit('allplayers',getAllPlayers());
+    // This is to notify the User of all the player present on the server
+    socket.emit('allplayers', getAllPlayers());
 
-        // this is to notify all the player present on the server that this user as connected with this Object
-        // NOTE : We don't send directly the socket, that would be irresponsible, but just the "object" player
-        /* NOTE : We need this function because sending right away all the players would not work. That's
-        * because the current player isn't already part of all the payers (got through keys(io.object.connected))
-        * until the current connection hasn't finished setting up
-        */
-        socket.broadcast.emit('newplayer',socket.player);
+    // this is to notify all the player present on the server that this user as connected with this Object
+    // NOTE : We don't send directly the socket, that would be irresponsible, but just the "object" player
+    /* NOTE : We need this function because sending right away all the players would not work. That's
+    * because the current player isn't already part of all the payers (got through keys(io.object.connected))
+    * until the current connection hasn't finished setting up
+    */
+    socket.broadcast.emit('newplayer', socket.player);
 
-        // THE USER JUST CLICKED
-        socket.on('click',function(data){
-            console.log(socket.player.id + ': click to '+data.x+', '+data.y);
-            socket.player.x = data.x;
-            socket.player.y = data.y;
+    // THE USER JUST CLICKED
+    socket.on('click', function(data) {
+      console.log(socket.player.id + ': click to ' + data.x + ', ' + data.y);
+      socket.player.x = data.x;
+      socket.player.y = data.y;
 
-            /* We could have make the player move directly on the client side but here we
-            *  want to wait that the server has correctly registered the position of the players
-            *  and that send the computed player object to the client so that the client can move
-            *  the player according to the server
-            */
-            io.emit('move',socket.player);
-        });
-
-        //THE USER FROM BEFORE JUST DISCONNECTED
-        socket.on('disconnect',function(){
-            io.emit('remove',socket.player.id);
-        });
+      /* We could have make the player move directly on the client side but here we
+      *  want to wait that the server has correctly registered the position of the players
+      *  and that send the computed player object to the client so that the client can move
+      *  the player according to the server
+      */
+      io.emit('move', socket.player);
     });
+
+    socket.on('req_move', function(data) {
+      console.log('Player : ' + socket.player.id + ' : Moving to the : ' + data.orientation);
+      socket.player.orientation = data.orientation;
+      socket.player.x = socket.player.x + data.x;
+      socket.player.y = socket.player.y + data.y;
+
+      io.emit('resp_move', socket.player);
+    })
+
+    //THE USER FROM BEFORE JUST DISCONNECTED
+    socket.on('disconnect', function() {
+      io.emit('remove', socket.player.id);
+    });
+  });
 });
 //here the current user is registered in the keys of the all the active sockets
 
 //pretty self explanatory
-function getAllPlayers(){
-    var players = [];
+function getAllPlayers() {
+  var players = [];
 
-    // foreach active connections
-    Object.keys(io.sockets.connected).forEach(function(socketID){
-        var player = io.sockets.connected[socketID].player;
-        if(player) players.push(player);
-    });
-    return players;
+  // foreach active connections
+  Object.keys(io.sockets.connected).forEach(function(socketID) {
+    var player = io.sockets.connected[socketID].player;
+    if (player)
+      players.push(player);
+    }
+  );
+  return players;
 }
 
-function randomInt (low, high) {
-    return Math.floor(Math.random() * (high - low) + low);
+function randomInt(low, high) {
+  return Math.floor(Math.random() * (high - low) + low);
 }
