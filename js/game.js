@@ -17,10 +17,12 @@ var downKey;
 var leftKey;
 var rightKey;
 
+var playerID;
+
 Game.create = function() {
 
   game.physics.startSystem(Phaser.Physics.P2JS);
-  game.physics.p2.defaultRestitution = 0.9;
+  game.physics.p2.defaultRestitution = 0.8;
 
   Game.playerMap = {};
   var map = game.add.tilemap('map');
@@ -79,7 +81,12 @@ Game.getCoordinates = function(layer, pointer) {
 };
 
 Game.addNewPlayer = function(id, x, y) {
+  playerID = id;
   Game.playerMap[id] = game.add.sprite(x, y, 'player');
+  game.physics.p2.enable(Game.playerMap[id], false);
+  Game.playerMap[id].smoothed = false;
+  Game.playerMap[id].body.setZeroVelocity();
+  game.camera.follow(Game.playerMap[id]);
 };
 
 Game.movePlayer = function(data) {
@@ -88,13 +95,15 @@ Game.movePlayer = function(data) {
 
   //Tween is to initaite a change over a period of time,
   // like a character moving or a sprite fading
-  var tween = game.add.tween(player);
-  var duration = distance * 10;
+  // var tween = game.add.tween(player);
+  // var duration = distance * 10;
   tween.to({
     x: data.x,
     y: data.y
   }, duration);
   tween.start();
+
+
 };
 
 Game.removePlayer = function(id) {
